@@ -30,6 +30,10 @@ dynamic = ["dependencies", "optional-dependencies", "version"]
 "Bug Tracker"             = "https://github.com/EmbedMe-io/embedme/issues"
 "Discord"                 = "https://discord.gg/egJ3ekJu"
 
+
+[project.scripts]
+embedme = "esphome.embedme.__main__:main"
+
 [tool.setuptools]
 platforms            = ["any"]
 zip-safe             = false
