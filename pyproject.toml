@@ -32,7 +32,8 @@ dynamic = ["dependencies", "optional-dependencies", "version"]
 
 
 [project.scripts]
-embedme = "esphome.embedme.__main__:main"
+embedmeio = "embedmeio.__main__:main"
+eio = "embedmeio.__main__:main"
 
 [tool.setuptools]
 platforms            = ["any"]
@@ -47,7 +48,7 @@ optional-dependencies.displays = { file = ["requirements_optional.txt"] }
 version = {attr = "esphome.const.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["esphome*"]
+include = ["esphome*", "embedmeio"]
 
 [tool.black]
 target-version = ["py39", "py310"]
