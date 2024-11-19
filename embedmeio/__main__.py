@@ -5,7 +5,7 @@ import re
 import subprocess
 import sys
 import venv
-from .const import DEFAULT_EMBEDME_PATH, get_eiombedme_package
+from .const import DEFAULT_EMBEDME_PATH, get_embedme_package
 
 logging.basicConfig(level=logging.INFO)
 
