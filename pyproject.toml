@@ -41,7 +41,7 @@ zip-safe             = false
 include-package-data = true
 
 [tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+dependencies = {file = ["requirements.txt", "requirements_optional.txt"]}
 optional-dependencies.dev = { file = ["requirements_dev.txt"] }
 optional-dependencies.test = { file = ["requirements_test.txt"] }
 optional-dependencies.displays = { file = ["requirements_optional.txt"] }
