@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Set up ESPHome dev environment
+# Set up EmbedMe dev environment
 
 set -e
 

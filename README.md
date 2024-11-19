@@ -1,11 +1,6 @@
-# ESPHome [![Discord Chat](https://img.shields.io/discord/429907082951524364.svg)](https://discord.gg/KhAMKrd) [![GitHub release](https://img.shields.io/github/release/esphome/esphome.svg)](https://GitHub.com/esphome/esphome/releases/)
+# EmbedMe [![Discord Chat](https://img.shields.io/discord/1270653771986374717)](https://discord.gg/egJ3ekJu) [![GitHub release](https://img.shields.io/github/v/release/EmbedMe-io/embedme
+)](https://github.com/EmbedMe-io/embedme/releases/)
 
-[![ESPHome Logo](https://esphome.io/_images/logo-text.png)](https://esphome.io/)
+[![EmbedMe Logo](https://docs.embedme.io/_images/embedme-logo.png)](https://docs.embedme.io/)
 
-**Documentation:** https://esphome.io/
-
-For issues, please go to [the issue tracker](https://github.com/esphome/issues/issues).
-
-For feature requests, please see [feature requests](https://github.com/esphome/feature-requests/issues).
-
-[![ESPHome - A project from the Open Home Foundation](https://www.openhomefoundation.org/badges/esphome.png)](https://www.openhomefoundation.org/)
+**Documentation:** https://docs.embedme.io

@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name        = "esphome"
 license     = {text = "MIT"}
-description = "Make creating custom firmwares for ESP32/ESP8266 super easy."
+description = "Low-code embedded systems build tool"
 readme      = "README.md"
 authors     = [
-  {name = "The ESPHome Authors", email = "esphome@nabucasa.com"}
+  {name = "EmbedMe.io", email = "embedme@embedme.io"}
 ]
 keywords    = ["home", "automation"]
 classifiers = [
@@ -25,16 +25,10 @@ requires-python = ">=3.9.0"
 dynamic = ["dependencies", "optional-dependencies", "version"]
 
 [project.urls]
-"Documentation"           = "https://esphome.io"
-"Source Code"             = "https://github.com/esphome/esphome"
-"Bug Tracker"             = "https://github.com/esphome/issues/issues"
-"Feature Request Tracker" = "https://github.com/esphome/feature-requests/issues"
-"Discord"                 = "https://discord.gg/KhAMKrd"
-"Forum"                   = "https://community.home-assistant.io/c/esphome"
-"Twitter"                 = "https://twitter.com/esphome_"
-
-[project.scripts]
-esphome = "esphome.__main__:main"
+"Documentation"           = "https://docs.embedme.io"
+"Source Code"             = "https://github.com/EmbedMe-io/embedme.git"
+"Bug Tracker"             = "https://github.com/EmbedMe-io/embedme/issues"
+"Discord"                 = "https://discord.gg/egJ3ekJu"
 
 [tool.setuptools]
 platforms            = ["any"]
