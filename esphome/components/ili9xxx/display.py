@@ -314,3 +314,6 @@ async def to_code(config):
         cg.add(var.set_palette(prog_arr))
 
     cg.add(var.invert_colors(config[CONF_INVERT_COLORS]))
+
+
+# A comment
