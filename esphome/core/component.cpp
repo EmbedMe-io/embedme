@@ -1,7 +1,5 @@
 #include "esphome/core/component.h"
 
-
-
 #include <cinttypes>
 #include <utility>
 #include "esphome/core/application.h"
