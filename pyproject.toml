@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools==69.2.0", "wheel~=0.43.0"]
+requires = ["setuptools==76.0.0", "wheel>=0.43,<0.46"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -50,10 +50,6 @@ version = {attr = "esphome.const.__version__"}
 [tool.setuptools.packages.find]
 include = ["esphome*", "embedmeio"]
 
-[tool.black]
-target-version = ["py39", "py310"]
-exclude = 'generated'
-
 [tool.pytest.ini_options]
 testpaths = [
   "tests",
@@ -87,6 +83,7 @@ disable = [
   "too-many-branches",
   "too-many-statements",
   "too-many-arguments",
+  "too-many-positional-arguments",
   "too-many-return-statements",
   "too-many-instance-attributes",
   "duplicate-code",
@@ -107,6 +104,8 @@ expected-line-ending-format = "LF"
 
 [tool.ruff]
 required-version = ">=0.5.0"
+target-version = "py39"
+exclude = ['generated']
 
 [tool.ruff.lint]
 select = [
