@@ -2,8 +2,6 @@
 
 #include <cinttypes>
 #include <utility>
-
-
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
