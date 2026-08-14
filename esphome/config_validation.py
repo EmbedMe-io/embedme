@@ -100,8 +100,9 @@ from esphome.schema_extractors import (
     schema_extractor_typed,
 )
 
-# EmbedMe fork marker: fabricated conflicting edit for sync-workflow testing, do not merge
-FORK_TEST_MARKER = True
+# Deprecated re-export for external components; remove before 2027.2.0
+# pylint: disable-next=unused-import
+from esphome.util import parse_esphome_version  # noqa: F401
 from esphome.voluptuous_schema import _Schema
 from esphome.yaml_util import SensitiveStr, make_data_base
 
