@@ -110,7 +110,7 @@ jobs:
       - name: Verify no leftover conflict markers
         if: steps.gate.outputs.sync_needed == 'true' && steps.merge.outputs.conflicts == 'true'
         run: |
-          if git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- . ; then
+          if git grep -n -E '^(<{7}( |$)|={7}$|>{7}( |$))' -- . ; then
             echo "::error::Unresolved conflict markers remain after AI resolution; refusing to continue."
             exit 1
           fi
