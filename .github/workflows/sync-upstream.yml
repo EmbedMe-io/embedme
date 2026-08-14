@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write  # required by anthropics/claude-code-action, even with a static API key
 
 concurrency:
   group: sync-upstream
