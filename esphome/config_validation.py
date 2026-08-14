@@ -99,6 +99,9 @@ from esphome.schema_extractors import (
     schema_extractor_registry,
     schema_extractor_typed,
 )
+
+# EmbedMe fork marker: fabricated conflicting edit for sync-workflow testing, do not merge
+FORK_TEST_MARKER = True
 from esphome.voluptuous_schema import _Schema
 from esphome.yaml_util import SensitiveStr, make_data_base
 
