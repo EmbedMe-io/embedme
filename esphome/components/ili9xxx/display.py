@@ -134,9 +134,10 @@ def _validate(config):
     ]:
         raise cv.Invalid("Selected model can't run on ESP8266.")
 
-    if model == "CUSTOM":
-        if CONF_INIT_SEQUENCE not in config or CONF_DIMENSIONS not in config:
-            raise cv.Invalid("CUSTOM model requires init_sequence and dimensions")
+    if model == "CUSTOM" and (
+        CONF_INIT_SEQUENCE not in config or CONF_DIMENSIONS not in config
+    ):
+        raise cv.Invalid("CUSTOM model requires init_sequence and dimensions")
 
     return config
 
@@ -210,27 +211,41 @@ CONFIG_SCHEMA = cv.All(
     _validate,
 )
 
-# FINAL_VALIDATE_SCHEMA = spi.final_validate_device_schema(
-#    "ili9xxx", require_miso=False, require_mosi=True
-# )
+
+def final_validate(config):
+    global_config = full_config.get()
+    # Ideally would calculate buffer size here, but that info is not available on the Python side
+    needs_buffer = (
+        CONF_LAMBDA in config or CONF_PAGES in config or config[CONF_AUTO_CLEAR_ENABLED]
+    )
+    if (
+        CORE.is_esp32
+        and config[CONF_COLOR_PALETTE] == "NONE"
+        and "psram" not in global_config
+        and needs_buffer
+    ):
+        LOGGER.info("Consider enabling PSRAM if available for the display buffer")
+
+    spi.final_validate_device_schema("ili9xxx", require_miso=False, require_mosi=True)(
+        config
+    )
+
+
+FINAL_VALIDATE_SCHEMA = final_validate
 
 
 async def to_code(config):
+    LOGGER.warning(
+        "The 'ili9xxx' component is deprecated, it is recommended to use 'mipi_spi' instead."
+    )
     rhs = MODELS[config[CONF_MODEL]].new()
     var = cg.Pvariable(config[CONF_ID], rhs)
 
     data_rate = int(max(config[CONF_DATA_RATE] / 1e6, 1))
     await display.register_display(var, config)
-    if config[CONF_BUS_TYPE] == TYPE_I80:
-        bus_client = await i80.create_i80_client(config)
-        data_rate = data_rate * 8
-    else:
-        spi_client = await spi.create_spi_client(config)
-        bus_client = cg.new_Pvariable(config[CONF_IO_BUS_ID], spi_client)
-    cg.add(var.set_bus(bus_client))
-    if dc := config.get(CONF_DC_PIN):
-        cg.add(bus_client.set_dc_pin(await cg.gpio_pin_expression(dc)))
-    cg.add(var.set_data_rate(data_rate))
+    await spi.register_spi_device(var, config, write_only=True)
+    dc = await cg.gpio_pin_expression(config[CONF_DC_PIN])
+    cg.add(var.set_dc_pin(dc))
     if init_sequences := config.get(CONF_INIT_SEQUENCE):
         sequence = []
         for seq in init_sequences:
@@ -285,7 +300,7 @@ async def to_code(config):
             try:
                 return Image.open(path)
             except Exception as e:
-                raise core.EsphomeError(f"Could not load image file {path}: {e}")
+                raise core.EsphomeError(f"Could not load image file {path}: {e}") from e
 
         # make a wide horizontal combined image.
         images = [load_image(x) for x in config[CONF_COLOR_PALETTE_IMAGES]]

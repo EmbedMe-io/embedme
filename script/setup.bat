@@ -1,8 +1,6 @@
 @echo off
 
-if defined DEVCONTAINER goto :install
 if defined VIRTUAL_ENV goto :install
-if defined ESPHOME_NO_VENV goto :install
 
 echo Starting the Virtual Environment
 python -m venv venv
@@ -15,13 +13,15 @@ echo Installing required packages...
 
 python.exe -m pip install --upgrade pip
 
-pip3 install -r requirements.txt -r requirements_optional.txt -r requirements_test.txt -r requirements_dev.txt
+pip3 install -r requirements.txt -r requirements_test.txt -r requirements_dev.txt
 pip3 install setuptools wheel
-pip3 install -e ".[dev,test,displays]" --config-settings editable_mode=compat
+pip3 install -e ".[dev,test]" --config-settings editable_mode=compat
 
-pre-commit install
-
-python script/platformio_install_deps.py platformio.ini --libraries --tools --platforms
+rem --overwrite replaces any hook already in place. Without it, prek finds a
+rem previously installed pre-commit hook, moves it aside to
+rem .git/hooks/pre-commit.legacy and keeps calling it, so every commit would
+rem run both tools.
+prek install --overwrite
 
 echo .
 echo .

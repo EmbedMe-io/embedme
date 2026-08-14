@@ -7,13 +7,15 @@ from esphome.const import (
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
     PLATFORM_HOST,
+    ThreadModel,
 )
 from esphome.core import CORE
+from esphome.platformio.toolchain import copy_ccache_script
 
 from .const import KEY_HOST
 
 # force import gpio to register pin schema
-from .gpio import host_pin_to_code  # noqa
+from .gpio import host_pin_to_code  # noqa: F401
 
 CODEOWNERS = ["@esphome/core", "@clydebarrow"]
 AUTO_LOAD = ["network", "preferences"]
@@ -40,7 +42,19 @@ CONFIG_SCHEMA = cv.All(
 
 async def to_code(config):
     cg.add_build_flag("-DUSE_HOST")
+    cg.add_define("USE_NATIVE_64BIT_TIME")
+    # The prefs file finds stored preferences by key, so key migration is possible
+    cg.add_define("USE_PREFERENCE_KEY_LOOKUP")
     cg.add_define("USE_ESPHOME_HOST_MAC_ADDRESS", config[CONF_MAC_ADDRESS].parts)
-    cg.add_build_flag("-std=c++17")
+    cg.add_build_flag("-std=gnu++20")
     cg.add_define("ESPHOME_BOARD", "host")
+    cg.add_define(ThreadModel.MULTI_ATOMICS)
     cg.add_platformio_option("platform", "platformio/native")
+    cg.add_platformio_option("lib_ldf_mode", "off")
+    cg.add_platformio_option("lib_compat_mode", "strict")
+    cg.add_platformio_option("extra_scripts", ["pre:ccache.py"])
+
+
+# Called by writer.py
+def copy_files() -> None:
+    copy_ccache_script()

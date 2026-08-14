@@ -4,8 +4,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-namespace esphome {
-namespace ili9xxx {
+namespace esphome::ili9xxx {
 
 class WaveshareIOBusShim : public io_bus::IOBus {
  public:
@@ -63,15 +62,7 @@ void ILI9XXXDisplay::set_madctl() {
 }
 
 void ILI9XXXDisplay::setup() {
-  ESP_LOGD(TAG, "Setting up ILI9xxx");
-
-  this->reset_pin_->setup();  // OUTPUT
-  this->reset_pin_->digital_write(true);
-  this->bus_->bus_setup();
-  this->reset_pin_->digital_write(false);
-  delay(20);
-  this->reset_pin_->digital_write(true);
-  delay(20);
+  this->setup_pins_();
   this->init_lcd_(this->init_sequence_);
   this->init_lcd_(this->extra_init_sequence_.data());
   uint8_t fmt;
@@ -118,8 +109,10 @@ void ILI9XXXDisplay::alloc_buffer_() {
 
 void ILI9XXXDisplay::dump_config() {
   LOG_DISPLAY("", "ili9xxx", this);
-  ESP_LOGCONFIG(TAG, "  Width Offset: %u", this->offset_x_);
-  ESP_LOGCONFIG(TAG, "  Height Offset: %u", this->offset_y_);
+  ESP_LOGCONFIG(TAG,
+                "  Width Offset: %u\n"
+                "  Height Offset: %u",
+                this->offset_x_, this->offset_y_);
   switch (this->buffer_color_mode_) {
     case BITS_8_INDEXED:
       ESP_LOGCONFIG(TAG, "  Color mode: 8bit Indexed");
@@ -136,11 +129,17 @@ void ILI9XXXDisplay::dump_config() {
   }
 
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
-  ESP_LOGCONFIG(TAG, "  Color order: %s", this->color_order_ == display::COLOR_ORDER_BGR ? "BGR" : "RGB");
-  ESP_LOGCONFIG(TAG, "  Swap_xy: %s", YESNO(this->swap_xy_));
-  ESP_LOGCONFIG(TAG, "  Mirror_x: %s", YESNO(this->mirror_x_));
-  ESP_LOGCONFIG(TAG, "  Mirror_y: %s", YESNO(this->mirror_y_));
-  ESP_LOGCONFIG(TAG, "  Invert colors: %s", YESNO(this->pre_invertcolors_));
+  LOG_PIN("  CS Pin: ", this->cs_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
+  LOG_PIN("  Busy Pin: ", this->busy_pin_);
+  ESP_LOGCONFIG(TAG,
+                "  Color order: %s\n"
+                "  Swap_xy: %s\n"
+                "  Mirror_x: %s\n"
+                "  Mirror_y: %s\n"
+                "  Invert colors: %s",
+                this->color_order_ == display::COLOR_ORDER_BGR ? "BGR" : "RGB", YESNO(this->swap_xy_),
+                YESNO(this->mirror_x_), YESNO(this->mirror_y_), YESNO(this->pre_invertcolors_));
 
   this->bus_->dump_config();
   if (this->is_failed()) {
@@ -154,7 +153,14 @@ float ILI9XXXDisplay::get_setup_priority() const { return setup_priority::HARDWA
 void ILI9XXXDisplay::fill(Color color) {
   if (!this->check_buffer_())
     return;
-  uint16_t new_color;
+
+  // If clipping is active, fall back to base implementation
+  if (this->get_clipping().is_set()) {
+    Display::fill(color);
+    return;
+  }
+
+  uint16_t new_color = 0;
   this->x_low_ = 0;
   this->y_low_ = 0;
   this->x_high_ = this->get_width_internal() - 1;
@@ -245,6 +251,10 @@ void ILI9XXXDisplay::update() {
 }
 
 void ILI9XXXDisplay::display_() {
+  // buffer may be null if allocation failed
+  if (this->buffer_ == nullptr) {
+    return;
+  }
   // check if something was displayed
   if ((this->x_high_ < this->x_low_) || (this->y_high_ < this->y_low_)) {
     return;
@@ -348,8 +358,8 @@ void ILI9XXXDisplay::draw_pixels_at(int x_start, int y_start, int w, int h, cons
       // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
       this->bus_->write_array(ptr, w * h * 2);
     } else {
-      for (size_t y = 0; y != h; y++) {
-        this->bus_->write_array(ptr + (y + y_offset) * stride + x_offset, w * 2);
+      for (size_t y = 0; y != static_cast<size_t>(h); y++) {
+        this->write_array(ptr + (y + y_offset) * stride + x_offset, w * 2);
       }
     }
   } else {
@@ -372,7 +382,7 @@ void ILI9XXXDisplay::draw_pixels_at(int x_start, int y_start, int w, int h, cons
         App.feed_wdt();
       }
       // end of line? Skip to the next.
-      if (++pixel == w) {
+      if (++pixel == static_cast<size_t>(w)) {
         pixel = 0;
         ptr += (x_pad + x_offset) * 2;
       }
@@ -440,11 +450,4 @@ void ILI9XXXDisplay::invert_colors(bool invert) {
 int ILI9XXXDisplay::get_width_internal() { return this->width_; }
 int ILI9XXXDisplay::get_height_internal() { return this->height_; }
 
-void WAVESHARERES35::setup() {
-  // insert a shim between us and the real bus.
-  this->bus_ = new WaveshareIOBusShim(this->bus_);  // NOLINT
-  ILI9XXXDisplay::setup();
-}
-
-}  // namespace ili9xxx
-}  // namespace esphome
+}  // namespace esphome::ili9xxx
