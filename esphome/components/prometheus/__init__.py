@@ -38,7 +38,7 @@ CONFIG_SCHEMA = cv.Schema(
 
 FINAL_VALIDATE_SCHEMA = validate_no_object_id_conflicts(
     "prometheus builds metric labels from the entity object_id, "
-    "which is the name converted to ASCII"
+    "which is the name converted to ASCII. See EmbedMe docs for details."
 )
 
 
