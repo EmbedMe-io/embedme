@@ -20,7 +20,6 @@ from esphome.components.esp32 import (
 from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
-    CONF_CLIENT_ID,
     CONF_CLK_PIN,
     CONF_CS_PIN,
     CONF_DATA_PINS,
@@ -44,18 +43,13 @@ import esphome.final_validate as fv
 from esphome.types import ConfigType
 
 CODEOWNERS = ["@esphome/core", "@clydebarrow"]
-AUTO_LOAD = ["io_bus"]
-
 spi_ns = cg.esphome_ns.namespace("spi")
 SPIComponent = spi_ns.class_("SPIComponent", cg.Component)
 QuadSPIComponent = spi_ns.class_("QuadSPIComponent", cg.Component)
 OctalSPIComponent = spi_ns.class_("OctalSPIComponent", cg.Component)
 SPIDevice = spi_ns.class_("SPIDevice")
-SPIClient = spi_ns.class_("SPIClient")
-SPIByteBus = spi_ns.class_("SPIByteBus", io_bus.IOBus)
 SPIDataRate = spi_ns.enum("SPIDataRate")
 SPIMode = spi_ns.enum("SPIMode")
-BitOrder = spi_ns.enum("SPIBitOrder")
 
 PLATFORM_SPI_CLOCKS = {
     PLATFORM_ESP8266: 40e6,
@@ -127,11 +121,6 @@ SPI_MODE_OPTIONS = {
     "3": SPIMode.MODE3,
 }
 
-ORDERS = {
-    "msb_first": BitOrder.BIT_ORDER_MSB_FIRST,
-    "lsb_first": BitOrder.BIT_ORDER_LSB_FIRST,
-}
-CONF_BIT_ORDER = "bit_order"
 CONF_SPI_MODE = "spi_mode"
 CONF_FORCE_SW = "force_sw"
 CONF_INTERFACE = "interface"
@@ -165,11 +154,7 @@ RP_SPI_PINSETS = [
 
 
 def get_target_platform():
-    return (
-        CORE.data[KEY_CORE][KEY_TARGET_PLATFORM]
-        if KEY_TARGET_PLATFORM in CORE.data[KEY_CORE]
-        else ""
-    )
+    return CORE.data[KEY_CORE][KEY_TARGET_PLATFORM]
 
 
 def get_target_variant():
@@ -486,21 +471,6 @@ async def register_spi_device(
         cg.add(var.set_mode(spi_mode))
     if release_device := config.get(CONF_RELEASE_DEVICE):
         cg.add(var.set_release_device(release_device))
-
-
-async def create_spi_client(config):
-    """
-    Create an SPIClient object. Note that this requires a data_rate, so the call to spi_device_schema must specify
-    a default data rate, or make it required.
-    """
-    client_id = config[CONF_CLIENT_ID]
-    var = cg.new_Pvariable(
-        client_id, config[CONF_BIT_ORDER], config[CONF_SPI_MODE], config[CONF_DATA_RATE]
-    )
-    cg.add(var.set_parent(await cg.get_variable(config[CONF_SPI_ID])))
-    if cs_pin := config.get(CONF_CS_PIN):
-        cg.add(var.set_cs_pin(await cg.gpio_pin_expression(cs_pin)))
-    return var
 
 
 def final_validate_device_schema(name: str, *, require_mosi: bool, require_miso: bool):
