@@ -18,7 +18,7 @@ from esphome.const import (
     CONF_PLATFORM,
     CONF_TYPE,
 )
-from esphome.core import CORE
+from esphome.core import CORE, ID
 from esphome.types import ConfigType
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,6 +41,11 @@ class ImageMetaData:
     height: int
     image_type: str
     transparency: str
+    # Number of frames; 1 for a static image, >1 for an animation.
+    frame_count: int = 1
+    # Total playback time in ms for one loop through all frames (e.g. the sum of a
+    # source GIF/APNG/WEBP's own per-frame delays), or None if unknown/not animated.
+    animation_duration_ms: int | None = None
 
 
 CONF_OPAQUE = "opaque"
@@ -394,10 +399,23 @@ def validate_settings(value, path=()):
     return value
 
 
-def add_metadata(id: str, width: int, height: int, image_type: str, transparency):
+def add_metadata(
+    id: str,
+    width: int,
+    height: int,
+    image_type: str,
+    transparency,
+    frame_count: int = 1,
+    animation_duration_ms: int | None = None,
+):
     all_metadata = CORE.data.setdefault(DOMAIN, {}).setdefault(KEY_METADATA, {})
     all_metadata[str(id)] = ImageMetaData(
-        width=width, height=height, image_type=image_type, transparency=transparency
+        width=width,
+        height=height,
+        image_type=image_type,
+        transparency=transparency,
+        frame_count=frame_count,
+        animation_duration_ms=animation_duration_ms,
     )
 
 
@@ -560,6 +578,34 @@ def expand_platform_config(config: list) -> list:
 EXPAND_PLATFORM_CONFIG = expand_platform_config
 
 # --------------------- end defaults/files expansion -------------------------
+
+
+# ---------------------------------------------------------------------------
+# Multi-frame id tracking -- available during config validation, before codegen
+#
+# The real per-image ImageMetaData (frame_count, decoded dimensions, ...) is only
+# known once an image's own `to_code` has run and decoded the source file. Some
+# consumers (e.g. LVGL's `image:` widget, deciding whether a widget needs to be
+# created as an animimg) need to know *which ids could ever be multi-frame* much
+# earlier -- while validating the whole config, before any codegen has happened at
+# all -- so they can account for ids only referenced later by an update action.
+# `mark_multiframe`/`is_multiframe` track that single bit per id, set as soon as an
+# id is declared (currently: any `platform: animation` entry, regardless of how many
+# frames its source file actually turns out to have).
+# ---------------------------------------------------------------------------
+
+KEY_MULTIFRAME_IDS = "multiframe_ids"
+
+
+def mark_multiframe(image_id: ID) -> None:
+    """Record that `image_id` may end up having more than one frame."""
+    ids = CORE.data.setdefault(DOMAIN, {}).setdefault(KEY_MULTIFRAME_IDS, set())
+    ids.add(str(image_id))
+
+
+def is_multiframe(image_id: ID) -> bool:
+    """Whether `image_id` was declared in a way that may produce multiple frames."""
+    return str(image_id) in CORE.data.get(DOMAIN, {}).get(KEY_MULTIFRAME_IDS, set())
 
 
 # ---------------------------------------------------------------------------
