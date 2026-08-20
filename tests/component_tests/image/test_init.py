@@ -377,6 +377,27 @@ def test_migrate_legacy_warns_and_prepends_platform(
             False,
             id="platform_tagged_defaults_files_dict",
         ),
+        # `files:` without `platform:` is not legacy either -- the flattener has no branch for it.
+        pytest.param(
+            {
+                "defaults": {"type": "rgb565"},
+                "files": [{"id": "a", "file": "x.png"}],
+            },
+            False,
+            id="defaults_files_dict_without_platform",
+        ),
+        # Same as above in a list -- without this exclusion it would be silently
+        # migrated to a hard-coded `platform: file` instead of raising the error.
+        pytest.param(
+            [
+                {
+                    "defaults": {"type": "rgb565"},
+                    "files": [{"id": "a", "file": "x.png"}],
+                }
+            ],
+            False,
+            id="defaults_files_list_entry_without_platform",
+        ),
     ],
 )
 def test_is_legacy_image_format(config: object, expected: bool) -> None:
@@ -394,9 +415,7 @@ def test_is_legacy_image_format(config: object, expected: bool) -> None:
 def test_migrate_returns_none_for_invalid_legacy_shapes(
     config: object, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Unrecognised shapes are not migrated (and emit no warning) so normal
-    platform validation surfaces a proper error instead of silently dropping
-    the offending input."""
+    """Unrecognised shapes are not migrated (and emit no warning), so normal platform validation reports them."""
     with caplog.at_level(logging.WARNING):
         assert _migrate_legacy_image_config(config) is None
     assert "deprecated" not in caplog.text
@@ -413,6 +432,28 @@ def test_migrate_returns_none_for_mapping_form_defaults_files() -> None:
         "defaults": {"type": "rgb565"},
         "files": [{"id": "a", "file": "a.png"}],
     }
+    assert _migrate_legacy_image_config(config) is None
+
+
+def test_migrate_returns_none_for_defaults_files_dict_without_platform() -> None:
+    """`defaults:`/`files:` without `platform:` must not be swallowed either -- the flattener has
+    no `files:` branch and would silently return `[]`."""
+    config = {
+        "defaults": {"type": "rgb565"},
+        "files": [{"id": "a", "file": "a.png"}],
+    }
+    assert _migrate_legacy_image_config(config) is None
+
+
+def test_migrate_returns_none_for_defaults_files_list_entry_without_platform() -> None:
+    """Same, in a list -- previously the list branch migrated it to a hard-coded
+    `platform: file` instead of raising a missing-platform error."""
+    config = [
+        {
+            "defaults": {"type": "rgb565"},
+            "files": [{"id": "a", "file": "a.png"}],
+        }
+    ]
     assert _migrate_legacy_image_config(config) is None
 
 
@@ -459,6 +500,32 @@ def test_expand_platform_entry_files_without_defaults() -> None:
     assert _expand_platform_entry(0, entry) == [
         {CONF_PLATFORM: "file", "id": "img1", "file": "foo.png"}
     ]
+
+
+def test_expand_platform_entry_preserves_source_range() -> None:
+    """A merged entry keeps the source range of its `files:` item so whole-entry errors anchor there."""
+    from esphome import yaml_util
+
+    file_entry = yaml_util.make_data_base({"id": "img1", "file": "foo.png"})
+    file_entry._esp_range = "sentinel-range"
+    entry = {
+        CONF_PLATFORM: "file",
+        CONF_DEFAULTS: {"type": "RGB565"},
+        CONF_FILES: [file_entry],
+    }
+    [out] = _expand_platform_entry(0, entry)
+    assert isinstance(out, yaml_util.ESPHomeDataBase)
+    assert out.esp_range == "sentinel-range"
+
+
+def test_expand_platform_entry_plain_dict_file_entry_has_no_source_range() -> None:
+    """Plain-dict `files:` items must not crash -- `from_database` reads `.esp_range` unconditionally."""
+    entry = {
+        CONF_PLATFORM: "file",
+        CONF_FILES: [{"id": "img1", "file": "foo.png"}],
+    }
+    [out] = _expand_platform_entry(0, entry)
+    assert out == {CONF_PLATFORM: "file", "id": "img1", "file": "foo.png"}
 
 
 def test_expand_platform_entry_per_file_overrides_win() -> None:

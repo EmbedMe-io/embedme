@@ -517,6 +517,8 @@ def _expand_platform_entry(index: int, entry: dict) -> list[dict]:
                 path=[index],
             )
 
+    from esphome import yaml_util
+
     platform = entry[CONF_PLATFORM]
     result: list[dict] = []
     for file_entry in files:
@@ -532,7 +534,14 @@ def _expand_platform_entry(index: int, entry: dict) -> list[dict]:
                 f"'{CONF_PLATFORM}' is not allowed inside '{CONF_FILES}'",
                 path=[index],
             )
-        merged = {CONF_PLATFORM: platform, **defaults, **file_entry}
+        # Keep the `files:` item's source range so whole-entry errors anchor there;
+        # `make_data_base` needs a real ESPHomeDataBase, so skip it for plain dicts.
+        source = (
+            file_entry if isinstance(file_entry, yaml_util.ESPHomeDataBase) else None
+        )
+        merged = yaml_util.make_data_base(
+            {CONF_PLATFORM: platform, **defaults, **file_entry}, source
+        )
         result.append(_drop_incompatible_byte_order(merged, file_entry, index=index))
     return result
 
@@ -654,17 +663,17 @@ def _is_legacy_image_format(config: object) -> bool:
     proper error instead of the migration silently dropping the input.
     """
     if isinstance(config, list):
-        # A bare list of (not-yet-platform-tagged) image dicts.
+        # Exclude `files:` entries -- the list branch would otherwise silently
+        # migrate them to `platform: file` instead of raising the missing-platform error.
         return bool(config) and all(
-            isinstance(entry, dict) and CONF_PLATFORM not in entry for entry in config
+            isinstance(entry, dict)
+            and CONF_PLATFORM not in entry
+            and CONF_FILES not in entry
+            for entry in config
         )
-    if not isinstance(config, dict) or CONF_PLATFORM in config:
-        # A dict already tagged with `platform:` is the new format written
-        # without its list brackets (e.g. a single `defaults:`/`files:` entry,
-        # or a single flat entry) -- not a legacy shape. Leave it alone; the
-        # normal `elif not isinstance(self.conf, list): self.conf = [self.conf]`
-        # normalization in LoadValidationStep wraps it into a one-entry list,
-        # which the new EXPAND_PLATFORM_CONFIG hook then handles correctly.
+    if not isinstance(config, dict) or CONF_PLATFORM in config or CONF_FILES in config:
+        # `platform:`/`files:` dicts are new-format (left for list-wrapping +
+        # expansion); the legacy flattener has no `files:` branch and would drop them.
         return False
     # A single image dict, or the grouped `defaults:`/`images:`/type-key form.
     return (
